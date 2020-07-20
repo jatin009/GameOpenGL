@@ -1,15 +1,49 @@
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
+#include "GL\glew.h"
+#include "GLFW\glfw3.h"
+#include "Game.h"
+#include "GLlogs.h"
 #include <iostream>
-#include "VertexArray.h"
-#include "VertexBuffer.h"
-#include "VertexLayout.h"
-#include "IndexBuffer.h"
-#include "Shader.h"
-#include "Texture.h"
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <map>
 
-int main(void)
+std::vector< std::vector<int> > ReadLevelsFile()
 {
+	std::ifstream file;
+	std::stringstream ss;
+
+	file.open("res/Levels.lvl");
+	std::vector<std::vector<int> > tileData;
+
+	if (file.is_open())
+	{
+		std::string line;
+		std::vector<int> tileRow;
+		while (getline(file, line))
+		{
+			std::cout << line << std::endl;
+			ss << line;
+
+			int tileCode;
+			while (ss >> tileCode)
+				tileRow.push_back(tileCode);
+			tileData.push_back(tileRow);
+
+			ss.clear();
+			tileRow.clear();
+		}
+	}
+	return tileData;
+}
+
+int main()
+{
+	const unsigned int WIDTH = 800;
+	const unsigned int HEIGHT = 600;
+
+	Game Arena(WIDTH, HEIGHT);
+
 	GLFWwindow* window;
 
 	/* Initialize the library */
@@ -17,7 +51,7 @@ int main(void)
 		return -1;
 
 	/* Create a windowed mode window and its OpenGL context */
-	window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Breakout", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -29,93 +63,41 @@ int main(void)
 
 	if (glewInit() != GLEW_OK)
 		std::cout << "Error" << std::endl;
-
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
-	//Texture creation
-	Texture tex("res/images/block.png", GL_CLAMP_TO_BORDER);
-	Texture tex2("res/images/block_solid.png", GL_CLAMP_TO_BORDER);
-	Texture bgTexture("res/images/background.jpg", GL_CLAMP_TO_BORDER);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	//Vertex Array creation
-	VertexArray vao;
-	vao.Bind();
+	std::vector< std::vector<int> > tilesVec = ReadLevelsFile();
+	Arena.Init(tilesVec);
 
-	float positions[] = {
-		//positions			//textures
-		-180.0f, -180.0f,	0.0f, 0.0f,
-		-180.0f, -130.0f,	0.0f, 1.0f,
-		-130.0f, -130.0f,	1.0f, 1.0f,
-		-130.0f, -180.0f,	1.0f, 0.0f
-	};
-
-	unsigned int indices[] = {
-		0, 1, 2,
-		2, 3, 0
-	};
-
-	//Vertex buffer creation
-	VertexBuffer vbo(positions, sizeof(positions));
-
-	//Index buffer creation
-	IndexBuffer ibo(indices, sizeof(indices));
-
-	//Adding layout on VertexArray
-	VertexLayout layout;
-	layout.Push<float>(2, 0);
-	layout.Push<float>(2, (void*)(2 * sizeof(float)));
-	layout.SetStride(4 * sizeof(float));
-	vao.AddLayout(layout);
-
-	//Shader creation part
-	Shader shader("res/Vertex.shader", "res/Fragment.shader");
-	shader.Use();
-	
-	//passing projection matrix
-	glm::mat4 proj(1.0f);
-	proj = glm::ortho(-200.0f, 200.0f, -200.0f, 200.0f, -2.0f, 2.0f);
-	shader.SetUniform<glm::mat4>("u_Projection", proj);
+	// deltaTime variables
+	// -------------------
+	float deltaTime = 0.0f;
+	float lastFrame = 0.0f;
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
-		/* Render here */
-		glClear(GL_COLOR_BUFFER_BIT);
-		
-		//background rendering
-		glm::mat4 bgmodel(1.0f);
-		bgmodel = glm::scale(bgmodel, glm::vec3(8.0, 8.0, 1.0));
-		bgmodel = glm::translate(bgmodel, glm::vec3(155.0f, 155.0f, 0.0f));
-		shader.SetUniform<glm::mat4>("u_Model", bgmodel);
-		bgTexture.Bind(0);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
-		//multiple objects creation at equal distance
-		float x_Shift = 0.0f;
-		for (int i = 0; i < 6; i++)
-		{
-			//passing model matrix
-			glm::mat4 model(1.0f);
-			model = glm::translate(model, glm::vec3(x_Shift, 0.0f, 0.0f));
-			shader.SetUniform<glm::mat4>("u_Model", model);
-			x_Shift += 55.0f;
-
-			if (i % 2 == 0)
-			{
-				tex.Bind(0);
-			}
-			else
-			{
-				tex2.Bind(0);
-			}
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-		}
-		
-		/* Swap front and back buffers */
-		glfwSwapBuffers(window);
+		// calculate delta time
+		// --------------------
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
 
 		/* Poll for and process events */
-		glfwPollEvents();
+		GLCall(glfwPollEvents());
+
+		Arena.ProcessInput(window, deltaTime);
+		Arena.Update(deltaTime);
+		
+		/* Render here */
+		GLCall(glClear(GL_COLOR_BUFFER_BIT));
+		GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+		Arena.Render();
+
+		/* Swap front and back buffers */
+		GLCall(glfwSwapBuffers(window));
 	}
 
 	glfwTerminate();

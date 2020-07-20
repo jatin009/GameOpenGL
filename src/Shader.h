@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
+#include "GLlogs.h"
 
 class Shader
 {
@@ -29,15 +30,15 @@ public:
 	{
 		if (m_UniformLocs.find(name) != m_UniformLocs.end())
 		{
-			glUniform1f(m_UniformLocs[name], f0);
+			GLCall(glUniform1f(m_UniformLocs[name], f0));
 			return;
 		}
 
-		int location = glGetUniformLocation(m_RendererID, name.c_str());
+		GLClearError(); int location = glGetUniformLocation(m_RendererID, name.c_str()); GLCheckError();		
 		if (location != -1)
 		{
 			m_UniformLocs[name] = location;
-			glUniform1f(location, f0);
+			GLCall(glUniform1f(location, f0));
 		}
 	}
 	template<>
@@ -45,15 +46,15 @@ public:
 	{
 		if (m_UniformLocs.find(name) != m_UniformLocs.end())
 		{
-			glUniform1i(m_UniformLocs[name], f0);
+			GLCall(glUniform1i(m_UniformLocs[name], f0));
 			return;
 		}
 
-		int location = glGetUniformLocation(m_RendererID, name.c_str());
+		GLClearError(); int location = glGetUniformLocation(m_RendererID, name.c_str()); GLCheckError();
 		if (location != -1)
 		{
 			m_UniformLocs[name] = location;
-			glUniform1i(location, f0);
+			GLCall(glUniform1i(location, f0));
 		}
 	}
 	template <>
@@ -61,15 +62,15 @@ public:
 	{
 		if (m_UniformLocs.find(name) != m_UniformLocs.end())
 		{
-			glUniformMatrix4fv(m_UniformLocs[name], 1, GL_FALSE, glm::value_ptr(trans));
+			GLCall(glUniformMatrix4fv(m_UniformLocs[name], 1, GL_FALSE, glm::value_ptr(trans)));
 			return;
 		}
 
-		int loc = glGetUniformLocation(m_RendererID, name.c_str());
+		GLClearError(); int loc = glGetUniformLocation(m_RendererID, name.c_str()); GLCheckError();
 		if (loc != -1)
 		{
 			m_UniformLocs[name] = loc;
-			glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(trans));
+			GLCall(glUniformMatrix4fv(loc, 1, GL_FALSE, glm::value_ptr(trans)));
 		}
 	}
 	void SetUniformF(const std::string& name, float f0, float f1, float f2, float f3);

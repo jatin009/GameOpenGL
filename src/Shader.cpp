@@ -17,31 +17,31 @@ Shader::Shader(const std::string& vertexFilePath, const std::string& fragmentFil
 
 	//Program creation to attach shader objects
 	m_RendererID = glCreateProgram();
-	glAttachShader(m_RendererID, vShader);
-	glAttachShader(m_RendererID, fShader);
+	GLCall(glAttachShader(m_RendererID, vShader));
+	GLCall(glAttachShader(m_RendererID, fShader));
 
-	glLinkProgram(m_RendererID);
+	GLCall(glLinkProgram(m_RendererID));
 
 	int link;
-	glGetProgramiv(m_RendererID, GL_LINK_STATUS, &link);
+	GLCall(glGetProgramiv(m_RendererID, GL_LINK_STATUS, &link));
 
 	if (link != GL_TRUE)
 	{
 		char message[1024];
 		int log_length;
-		glGetProgramInfoLog(fShader, 1024, &log_length, message);
+		GLCall(glGetProgramInfoLog(fShader, 1024, &log_length, message));
 
 		std::cout << "Program Linking Error: " << message << std::endl;
 	}
 
 	//Once the linking of program is successful, we can delete the shaders
-	glDeleteShader(vShader);
-	glDeleteShader(fShader);
+	GLCall(glDeleteShader(vShader));
+	GLCall(glDeleteShader(fShader));
 }
 
 Shader::~Shader()
 {
-	glDeleteProgram(m_RendererID);
+	GLCall(glDeleteProgram(m_RendererID));
 }
 
 std::stringstream Shader::ParseShader(const std::string& filepath)
@@ -64,20 +64,20 @@ std::stringstream Shader::ParseShader(const std::string& filepath)
 
 unsigned int Shader::CreateShader(unsigned int type, const std::string& source)
 {
-	unsigned int shaderid = glCreateShader(type);
+	GLClearError(); unsigned int shaderid = glCreateShader(type); GLCheckError();
 	const char* src = source.c_str();
 
-	glShaderSource(shaderid, 1, &src, nullptr);
+	GLCall(glShaderSource(shaderid, 1, &src, nullptr));
 
-	glCompileShader(shaderid);
+	GLCall(glCompileShader(shaderid));
 	int compile;
-	glGetShaderiv(shaderid, GL_COMPILE_STATUS, &compile);
+	GLCall(glGetShaderiv(shaderid, GL_COMPILE_STATUS, &compile));
 
 	if (compile != GL_TRUE)
 	{
 		char message[1024];
 		int log_length;
-		glGetShaderInfoLog(shaderid, 1024, &log_length, message);
+		GLCall(glGetShaderInfoLog(shaderid, 1024, &log_length, message));
 
 		std::cout << "Shader Compilation Error: " << message << std::endl;
 		return 0;
@@ -88,26 +88,26 @@ unsigned int Shader::CreateShader(unsigned int type, const std::string& source)
 
 void Shader::Use() const
 {
-	glUseProgram(m_RendererID);
+	GLCall(glUseProgram(m_RendererID));
 }
 
 void Shader::UnUse() const
 {
-	glUseProgram(0);
+	GLCall(glUseProgram(0));
 }
 
 void Shader::SetUniformF(const std::string& name, float f0, float f1, float f2, float f3)
 {
 	if (m_UniformLocs.find(name) != m_UniformLocs.end())
 	{
-		glUniform4f(m_UniformLocs[name], f0, f1, f2, f3);
+		GLCall(glUniform4f(m_UniformLocs[name], f0, f1, f2, f3));
 		return;
 	}
 
-	int location = glGetUniformLocation(m_RendererID, name.c_str());
+	GLClearError(); int location = glGetUniformLocation(m_RendererID, name.c_str()); GLCheckError();
 	if (location != -1)
 	{
 		m_UniformLocs[name] = location;
-		glUniform4f(location, f0, f1, f2, f3);
+		GLCall(glUniform4f(location, f0, f1, f2, f3));
 	}
 }

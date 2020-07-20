@@ -8,7 +8,8 @@ private:
 	unsigned char* m_LocalBuffer;
 
 public:
-	Texture(const char* filepath, int wrapMode);
+	Texture() {}
+	Texture(const char* filepath, int wrapMode, bool alpha = false);
 	~Texture();
 
 	void Bind(unsigned int unit);
